@@ -55,6 +55,10 @@ namespace TM_PresetManager
         private void initSettingsFromRegistry()
         {
             RegistryKey OEM = Registry.CurrentUser.OpenSubKey(joysticksOEMPath);
+            if (OEM == null)
+            {
+                throw new Exception("Joysticks registry not found");
+            }
             List<RegistryKey> foundDevices = new List<RegistryKey>();
             {
                 string[] subKeys = OEM.GetSubKeyNames();

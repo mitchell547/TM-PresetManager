@@ -12,7 +12,7 @@ using System.Security.AccessControl;
 using System.Xml;
 using System.Xml.Serialization;
 using System.IO;
-using HidLibrary;
+//using HidLibrary;
 
 namespace TM_PresetManager
 {
@@ -55,8 +55,18 @@ namespace TM_PresetManager
             presetListBox.DataSource = _presets;
             presetListBox.ClearSelected();
 
-            regInteractor = new TMRegistryInteractor();
-            initSettingsFromRegistry();
+            try
+            {
+                regInteractor = new TMRegistryInteractor();
+                initSettingsFromRegistry();
+            }
+            catch (Exception exception)
+            { 
+                System.Windows.Forms.MessageBox.Show(
+                    "Wheel cannot be found.\n" +
+                    "Are you sure you are using Thrustmaster wheel and have installed driver?\n");
+                this.Load += (s, e) => Close();
+            }
 
             //{
             //    string s = regInteractor.ExtractHexVendorID();
