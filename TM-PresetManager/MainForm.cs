@@ -18,6 +18,7 @@ namespace TM_PresetManager
 {
     public partial class MainForm : Form
     {
+        const string presetsFileName = "presets.xml";
 
         TMRegistryInteractor regInteractor;
 
@@ -43,10 +44,10 @@ namespace TM_PresetManager
 
             presetListBox.DisplayMember = "name";
             {
-                if (File.Exists("configs.xml"))
+                if (File.Exists(presetsFileName))
                 {
                     XmlSerializer serializer = new XmlSerializer(typeof(BindingList<FFBPreset>));
-                    using (FileStream fs = new FileStream("configs.xml", FileMode.Open))
+                    using (FileStream fs = new FileStream(presetsFileName, FileMode.Open))
                     {
                         _presets = (BindingList<FFBPreset>)serializer.Deserialize(fs);
                     }
@@ -245,7 +246,7 @@ namespace TM_PresetManager
         private void saveAllPresets()
         {
             XmlSerializer serializer = new XmlSerializer(typeof(BindingList<FFBPreset>));
-            using (FileStream fs = new FileStream("configs.xml", FileMode.Create))
+            using (FileStream fs = new FileStream(presetsFileName, FileMode.Create))
             {
                 serializer.Serialize(fs, _presets);
             }
