@@ -18,15 +18,12 @@ namespace TM_PresetManager
 {
     public partial class MainForm : Form
     {
-        const string joysticksOEMPath =
-            "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM";
-        const string joystickSettingsPath =
-            "OEM\\JoystickSettings";
-        string _deviceKeyName;
-        string _settingsFullPath;
-        RegistryKey _device;
+
+        TMRegistryInteractor regInteractor;
 
         BindingList<FFBPreset> _presets = new BindingList<FFBPreset>();
+
+        //HidDevice _hidDevice;
 
         [Serializable]
         public class FFBPreset
@@ -39,24 +36,6 @@ namespace TM_PresetManager
             public int damperGain { get; set; } = 100;
             public int springGain { get; set; } = 100;
         };
-
-        private int ConvertRegValueToInt(object value)
-        {
-            // Register values have little-endian byte order
-            // So, reverse them and convert to int
-            if (value == null)
-                return 0;
-            Byte[] data = (Byte[])value;
-            data.Reverse();
-            return BitConverter.ToInt32(data, 0);
-        }
-
-        private Byte[] ConvertIntToLittleEndianBin(int value)
-        {
-            Byte[] data = BitConverter.GetBytes(value);
-            data.Reverse();
-            return data;
-        }
 
         public MainForm()
         {
@@ -75,7 +54,34 @@ namespace TM_PresetManager
             }
             presetListBox.DataSource = _presets;
             presetListBox.ClearSelected();
+
+            regInteractor = new TMRegistryInteractor();
             initSettingsFromRegistry();
+
+            //{
+            //    string s = regInteractor.ExtractHexVendorID();
+            //    int vendorId = Convert.ToInt32(regInteractor.ExtractHexVendorID(), 16);
+            //    int productId = Convert.ToInt32(regInteractor.ExtractHexProductID(), 16);
+
+            //    // TODO: check if there are multiple devices found
+            //    _hidDevice = HidDevices.Enumerate(vendorId, productId).FirstOrDefault();
+
+            //    if (_hidDevice != null)
+            //    {
+            //        deviceStatusLbl.Text = "Conected";
+            //        _hidDevice.OpenDevice();
+
+            //        HidDeviceData InData;
+            //        string Text;
+
+            //        InData = _hidDevice.Read();
+            //        Text = System.Text.ASCIIEncoding.ASCII.GetString(InData.Data);
+
+            //        Console.WriteLine(Text);
+            //    }
+            //    else
+            //        deviceStatusLbl.Text = "Not Conected";
+            //}
 
             wheelAngleValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
             strengthValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
@@ -88,60 +94,24 @@ namespace TM_PresetManager
             updateNotifyMenu();
         }
 
+
+
         private FFBPreset getSelectedPreset()
         {
             return (FFBPreset)presetListBox.SelectedItem;
         }
 
         private void initSettingsFromRegistry()
-        {
-            RegistryKey OEM = Registry.CurrentUser.OpenSubKey(joysticksOEMPath);
-            List<RegistryKey> foundDevices = new List<RegistryKey>();
-            {
-                string[] subKeys = OEM.GetSubKeyNames();
-                foreach (string k in subKeys)
-                {
-                    string devicePath = joysticksOEMPath + "\\" + k + "\\" + joystickSettingsPath;
-                    RegistryKey deviceKey = Registry.CurrentUser.OpenSubKey(devicePath);
-                    if (deviceKey != null)
-                    {
-                        deviceKey = Registry.CurrentUser.OpenSubKey(joysticksOEMPath + "\\" + k);
-                        string deviceName = (string)deviceKey.GetValue("OEMName");
+        {            
+            WheelNameLbl.Text = regInteractor.TMDeviceName;
+            FFBPreset preset = regInteractor.preset;
+            wheelAngleValue.Value = preset.wheelAngle;
+            strengthValue.Value = preset.overallGain;
+            constantGainValue.Value = preset.constantForceGain;
+            periodicGainValue.Value = preset.periodicGain;
+            damperGainValue.Value = preset.damperGain;
+            springGainValue.Value = preset.springGain;
 
-                        if (deviceName.StartsWith("Thrustmaster"))
-                            foundDevices.Add(deviceKey);
-                    }
-                }
-            }
-
-            if (foundDevices.Count == 1)
-            {
-                _device = foundDevices[0];
-                _deviceKeyName = _device.Name;
-                string deviceName = (string)_device.GetValue("OEMName");
-                RegistryKey settings = GetSettingsKeyFromJoystick(_device);
-                _settingsFullPath = settings.Name;
-
-                // This setting values may not exist if they didn't ever changed from default value
-                // so TODO: check value for existence, create if there is no value
-
-                int wheelAngle = ConvertRegValueToInt(settings.GetValue("DefaultWheelAngle"));
-                int overallGain = ConvertRegValueToInt(settings.GetValue("OverallGain"));
-                int constantForce = ConvertRegValueToInt(settings.GetValue("ConstantForceGain"));
-                int periodicGain = ConvertRegValueToInt(settings.GetValue("PeriodicGain"));
-                int damper = ConvertRegValueToInt(settings.GetValue("DamperGain"));
-                int spring = ConvertRegValueToInt(settings.GetValue("SpringGain"));
-                // Gain values range [0; 100000] (max = 100%)
-                // Wheel angle range [0; 1080]
-
-                WheelNameLbl.Text = deviceName;
-                wheelAngleValue.Value = wheelAngle;
-                strengthValue.Value = overallGain / 100;
-                constantGainValue.Value = constantForce / 100;
-                periodicGainValue.Value = periodicGain / 100;
-                damperGainValue.Value = damper / 100;
-                springGainValue.Value = spring / 100;
-            }
         }
 
         private void restoreWindow()
@@ -196,95 +166,6 @@ namespace TM_PresetManager
             }
         }
 
-        private RegistryKey GetSettingsKeyFromJoystick(RegistryKey joystickKey)
-        {
-            RegistryKey settings = joystickKey.OpenSubKey(joystickSettingsPath);
-            string[] subKeys = settings.GetSubKeyNames();
-
-            // TODO: check how many subkey there are
-
-            settings = settings.OpenSubKey(subKeys[0]);
-            return settings;
-        }
-
-        //private void ReadValues_Click(object sender, EventArgs e)
-        //{
-            
-        //    //const string registryPath = "HKEY_CURRENT_USER\\System\\";
-        //    //RegistryKey OEM = (RegistryKey)Registry.GetValue(registryPath, "CurrentControlSet", Registry.Users);
-        //    RegistryKey OEM = Registry.CurrentUser.OpenSubKey(joysticksOEMPath);
-        //    List<RegistryKey> foundDevices = new List<RegistryKey>();
-        //    {
-        //        string[] subKeys = OEM.GetSubKeyNames();
-        //        foreach (string k in subKeys)
-        //        {
-        //            string devicePath = joysticksOEMPath + "\\" + k + "\\" + joystickSettingsPath;
-        //            RegistryKey deviceKey = Registry.CurrentUser.OpenSubKey(devicePath);
-        //            if (deviceKey != null)
-        //            {
-        //                deviceKey = Registry.CurrentUser.OpenSubKey(joysticksOEMPath + "\\" + k);
-        //                string deviceName = (string)deviceKey.GetValue("OEMName");
-
-        //                //RegistrySecurity rs = new RegistrySecurity();
-        //                //rs = deviceKey.GetAccessControl();
-        //                //string user = Environment.UserDomainName + "\\" + Environment.UserName;
-        //                //rs.AddAccessRule(
-        //                //    new RegistryAccessRule(
-        //                //        user,
-        //                //        RegistryRights.WriteKey
-        //                //        | RegistryRights.ReadKey
-        //                //        | RegistryRights.Delete
-        //                //        | RegistryRights.FullControl,
-        //                //        AccessControlType.Allow));
-
-        //                if (deviceName.StartsWith("Thrustmaster"))
-        //                    foundDevices.Add(deviceKey);
-        //            }
-        //        }
-        //    }
-            
-        //    if (foundDevices.Count == 1)
-        //    {
-        //        _device = foundDevices[0];
-        //        _deviceKeyName = _device.Name;
-        //        string deviceName = (string)_device.GetValue("OEMName");
-        //        WheelNameLbl.Text = deviceName;
-        //        RegistryKey settings = GetSettingsKeyFromJoystick(_device);
-        //        _settingsFullPath = settings.Name;
-        //        // This setting values may not exist if they didn't ever changed from default value
-        //        // so TODO: check value for existence, create if there is no value
-        //        int wheelAngle = ConvertRegValueToInt(settings.GetValue("DefaultWheelAngle"));
-        //        int overallGain = ConvertRegValueToInt(settings.GetValue("OverallGain"));
-        //        int constantForce = ConvertRegValueToInt(settings.GetValue("ConstantForceGain"));
-        //        int periodicGain = ConvertRegValueToInt(settings.GetValue("PeriodicGain"));
-        //        int damper = ConvertRegValueToInt(settings.GetValue("DamperGain"));                
-        //        int spring = ConvertRegValueToInt(settings.GetValue("SpringGain"));
-        //        // Gain values range [0; 100000] (max = 100%)
-        //        // Wheel angle range [0; 1080]
-
-        //        wheelAngleValue.Value = wheelAngle;
-        //        strengthValue.Value = overallGain / 100;
-        //        constantGainValue.Value = constantForce / 100;
-        //        periodicGainValue.Value = periodicGain / 100;
-        //        damperGainValue.Value = damper / 100;
-        //        springGainValue.Value = spring / 100;
-        //    }
-        //}
-
-        //private void WriteValues_Click(object sender, EventArgs e)
-        //{
-        //    if (_device == null)
-        //        return;
-
-        //    //RegistryKey settings = GetSettingsKeyFromJoystick(_device);
-        //    //settings.SetValue("DamperGain", ConvertIntToLittleEndian((int)damperGainValue.Value));
-        //    string settingsPath = _deviceKeyName + "\\" + joystickSettingsPath;
-        //    Registry.SetValue(_settingsFullPath, "DamperGain", ConvertIntToLittleEndianBin((int)damperGainValue.Value * 100));
-
-        //    saveAllPresets();
-        //}
-
-        
         private void createNewBtn_Click(object sender, EventArgs e)
         {
             PresetNameDialog dialog = new PresetNameDialog();
@@ -370,22 +251,13 @@ namespace TM_PresetManager
             damperGainValue.Value = preset.damperGain;
             springGainValue.Value = preset.springGain;
         }
-
-        private void setRegistryValuesWithPreset(FFBPreset preset)
-        {
-            Registry.SetValue(_settingsFullPath, "DefaultWheelAngle", ConvertIntToLittleEndianBin((int)preset.wheelAngle));
-            Registry.SetValue(_settingsFullPath, "OverallGain", ConvertIntToLittleEndianBin((int)preset.overallGain * 100));
-            Registry.SetValue(_settingsFullPath, "ConstantForceGain", ConvertIntToLittleEndianBin((int)preset.constantForceGain * 100));
-            Registry.SetValue(_settingsFullPath, "PeriodicGain", ConvertIntToLittleEndianBin((int)preset.periodicGain * 100));
-            Registry.SetValue(_settingsFullPath, "DamperGain", ConvertIntToLittleEndianBin((int)preset.damperGain * 100));
-            Registry.SetValue(_settingsFullPath, "SpringGain", ConvertIntToLittleEndianBin((int)preset.springGain * 100));
-        }
        
         private void useSelectedPreset()
         {
             FFBPreset preset = getSelectedPreset();
             fillPresetControls(preset);
-            setRegistryValuesWithPreset(preset);
+            //setRegistryValuesWithPreset(preset);
+            regInteractor.SetRegistryValuesWithPreset(preset);
             resetUpdatePresetBtnText();
             saveAllPresets();
         }
@@ -406,5 +278,29 @@ namespace TM_PresetManager
                 this.ShowInTaskbar = false;
             }
         }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            //if (_hidDevice == null || !_hidDevice.IsConnected)
+            //    return;
+            //_hidDevice.CloseDevice();
+            //_hidDevice.Dispose();
+            //_hidDevice = (HidDevice)null;
+        }
+
+        //private void readHIDBtn_Click(object sender, EventArgs e)
+        //{
+        //    if (_hidDevice != null)
+        //    {
+
+        //        HidDeviceData InData;
+        //        string Text;
+
+        //        InData = _hidDevice.Read();
+        //        Text = System.Text.ASCIIEncoding.ASCII.GetString(InData.Data);
+
+        //        Console.WriteLine(Text);
+        //    }
+        //}
     }
 }
