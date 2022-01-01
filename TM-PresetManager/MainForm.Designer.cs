@@ -51,6 +51,7 @@
             this.updatePresetBtn = new System.Windows.Forms.Button();
             this.deleteBtn = new System.Windows.Forms.Button();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.setPresetBtn = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.strengthValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.constantGainValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.periodicGainValue)).BeginInit();
@@ -278,11 +279,22 @@
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseDoubleClick);
             // 
+            // setPresetBtn
+            // 
+            this.setPresetBtn.Location = new System.Drawing.Point(97, 253);
+            this.setPresetBtn.Name = "setPresetBtn";
+            this.setPresetBtn.Size = new System.Drawing.Size(75, 23);
+            this.setPresetBtn.TabIndex = 22;
+            this.setPresetBtn.Text = "Set";
+            this.setPresetBtn.UseVisualStyleBackColor = true;
+            this.setPresetBtn.Click += new System.EventHandler(this.setPresetBtn_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(473, 290);
+            this.Controls.Add(this.setPresetBtn);
             this.Controls.Add(this.deleteBtn);
             this.Controls.Add(this.updatePresetBtn);
             this.Controls.Add(this.createNewBtn);
@@ -344,6 +356,7 @@
         private System.Windows.Forms.Button updatePresetBtn;
         private System.Windows.Forms.Button deleteBtn;
         private System.Windows.Forms.NotifyIcon notifyIcon;
+        private System.Windows.Forms.Button setPresetBtn;
     }
 }
 

@@ -24,6 +24,8 @@ namespace TM_PresetManager
 
         BindingList<FFBPreset> _presets = new BindingList<FFBPreset>();
 
+        bool _presetSelected = false;
+
         //HidDevice _hidDevice;
 
         [Serializable]
@@ -94,12 +96,12 @@ namespace TM_PresetManager
             //        deviceStatusLbl.Text = "Not Conected";
             //}
 
-            wheelAngleValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
-            strengthValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
-            constantGainValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
-            periodicGainValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
-            damperGainValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
-            springGainValue.ValueChanged += new System.EventHandler(markIfSaveNeeded);
+            wheelAngleValue.TextChanged += new System.EventHandler(markIfSaveNeeded);
+            strengthValue.TextChanged += new System.EventHandler(markIfSaveNeeded);
+            constantGainValue.TextChanged += new System.EventHandler(markIfSaveNeeded);
+            periodicGainValue.TextChanged += new System.EventHandler(markIfSaveNeeded);
+            damperGainValue.TextChanged += new System.EventHandler(markIfSaveNeeded);
+            springGainValue.TextChanged += new System.EventHandler(markIfSaveNeeded);
 
             notifyIcon.ContextMenuStrip = new ContextMenuStrip();
             updateNotifyMenu();
@@ -204,10 +206,17 @@ namespace TM_PresetManager
         {
             //int id = (int)presetListBox.SelectedValue;
             FFBPreset preset = getSelectedPreset();
+            if (preset == null)
+            {
+                _presetSelected = false;
+                return;
+            }
             _presets.Remove(preset);
             saveAllPresets();
-            useSelectedPreset();
+            //useSelectedPreset();
             updateNotifyMenu();
+            if (_presetSelected)
+                presetLbl.Text += " (deleted)";
         }
 
         private void presetListBox_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -266,11 +275,14 @@ namespace TM_PresetManager
         private void useSelectedPreset()
         {
             FFBPreset preset = getSelectedPreset();
+            if (preset == null)
+                return;
             fillPresetControls(preset);
             //setRegistryValuesWithPreset(preset);
             regInteractor.SetRegistryValuesWithPreset(preset);
             resetUpdatePresetBtnText();
             saveAllPresets();
+            _presetSelected = true;
         }
 
         private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -297,6 +309,19 @@ namespace TM_PresetManager
             //_hidDevice.CloseDevice();
             //_hidDevice.Dispose();
             //_hidDevice = (HidDevice)null;
+        }
+
+        private void setPresetBtn_Click(object sender, EventArgs e)
+        {
+            FFBPreset preset = new FFBPreset();
+            preset.wheelAngle = (int)wheelAngleValue.Value;
+            preset.overallGain = (int)strengthValue.Value;
+            preset.constantForceGain = (int)constantGainValue.Value;
+            preset.periodicGain = (int)periodicGainValue.Value;
+            preset.damperGain = (int)damperGainValue.Value;
+            preset.springGain = (int)springGainValue.Value;
+            regInteractor.SetRegistryValuesWithPreset(preset);
+            presetLbl.Text = "Custom (not saved)";
         }
 
         //private void readHIDBtn_Click(object sender, EventArgs e)
