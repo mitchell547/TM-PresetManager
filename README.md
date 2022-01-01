@@ -20,6 +20,6 @@ Preset Manager for Thrustmaster wheels
 
 <img src="./tray-scr.png" height="125">
 
-### Requierements
+### Requirements
 - Windows 7 or higher
 - .NET Framework 4.6.1 or higher
