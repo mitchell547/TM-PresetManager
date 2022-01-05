@@ -20,9 +20,28 @@ namespace TM_PresetManager
         private string _settingsFullPath;
         private RegistryKey _device;
         private string HIDDeviceID;
+        private HashSet<string> deviceIDList = new HashSet<string>();
 
         public TMRegistryInteractor()
         {
+            deviceIDList.Add("VID_044F&PID_B65D");
+            deviceIDList.Add("VID_044F&PID_B65E");
+            deviceIDList.Add("VID_044F&PID_B662");
+            deviceIDList.Add("VID_044F&PID_B669");
+            deviceIDList.Add("VID_044F&PID_B66B");
+            deviceIDList.Add("VID_044F&PID_B66E");
+            deviceIDList.Add("VID_044F&PID_B66F");
+            deviceIDList.Add("VID_044F&PID_B677");
+            deviceIDList.Add("VID_044F&PID_B67F");
+            deviceIDList.Add("VID_044F&PID_B681");
+            deviceIDList.Add("VID_044F&PID_B684");
+            deviceIDList.Add("VID_044F&PID_B685");
+            deviceIDList.Add("VID_044F&PID_B689");
+            deviceIDList.Add("VID_044F&PID_B68A");
+            deviceIDList.Add("VID_044F&PID_B692");
+            deviceIDList.Add("VID_044F&PID_B693");
+            deviceIDList.Add("VID_044F&PID_B696");            
+            
             initSettingsFromRegistry();
         }
 
@@ -64,19 +83,20 @@ namespace TM_PresetManager
                 string[] subKeys = OEM.GetSubKeyNames();
                 foreach (string k in subKeys)
                 {
+                    if (!deviceIDList.Contains(k.ToUpper()))
+                        continue;
+
                     string devicePath = joysticksOEMPath + "\\" + k + "\\" + joystickSettingsPath;
                     RegistryKey deviceSettingsKey = Registry.CurrentUser.OpenSubKey(devicePath);
                     if (deviceSettingsKey != null)
                     {
                         RegistryKey deviceKey = Registry.CurrentUser.OpenSubKey(joysticksOEMPath + "\\" + k);
-                        string deviceName = (string)deviceKey.GetValue("OEMName");
-                        if (deviceName.StartsWith("Thrustmaster"))
-                            foundDevices.Add(deviceKey);
+                        foundDevices.Add(deviceKey);
                     }
                 }
             }
 
-            if (foundDevices.Count == 1)
+            if (foundDevices.Count > 0)
             {
                 _device = foundDevices[0];
                 _deviceKeyName = _device.Name;
